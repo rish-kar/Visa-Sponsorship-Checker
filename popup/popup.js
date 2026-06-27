@@ -1,6 +1,6 @@
 const DEFAULTS = { enabled: true, country: "GB" };
-const CONTENT_VERSION = "1.2.0";
-const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/linkedin-extractor.js", "src/content.js", "src/structural-scanner.js"];
+const CONTENT_VERSION = "1.3.0";
+const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/linkedin-extractor.js", "src/structural-scanner.js"];
 
 const elements = {
   toggle: document.getElementById("enabledToggle"),
