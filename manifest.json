@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Visa Sponsorship Checker",
+  "version": "1.0.0",
+  "description": "Highlights UK licensed sponsors directly on LinkedIn Jobs using an offline Home Office register.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/jobs/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_title": "Visa Sponsorship Checker",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/jobs/*"
+      ],
+      "js": [
+        "src/matcher.js",
+        "src/content.js"
+      ],
+      "css": [
+        "src/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "data/uk-sponsors.index.json",
+        "data/metadata.json"
+      ],
+      "matches": [
+        "https://www.linkedin.com/*"
+      ]
+    }
+  ]
+}
