@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visa Sponsorship Checker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="aurora aurora--one"></div>
+  <div class="aurora aurora--two"></div>
+  <main class="shell">
+    <header class="header">
+      <div class="brand-mark" aria-hidden="true"><span>V</span></div>
+      <div>
+        <p class="eyebrow">LINKEDIN JOBS</p>
+        <h1>Visa Sponsor</h1>
+      </div>
+      <span class="version">v1.0</span>
+    </header>
+
+    <section class="hero spotlight-card" id="spotlightCard">
+      <div class="spotlight"></div>
+      <div class="hero__top">
+        <div>
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-label" id="statusLabel">Enabled</span>
+        </div>
+        <label class="switch" aria-label="Enable Visa Sponsorship Checker">
+          <input id="enabledToggle" type="checkbox" checked>
+          <span class="switch__track"><span class="switch__thumb"></span></span>
+        </label>
+      </div>
+      <h2>Know before you apply.</h2>
+      <p>Companies are checked locally against the official UK sponsor register.</p>
+    </section>
+
+    <section class="settings-card">
+      <label for="countrySelect">Country</label>
+      <div class="select-wrap">
+        <select id="countrySelect">
+          <option value="GB">🇬🇧 United Kingdom</option>
+          <option disabled>🇺🇸 United States — coming soon</option>
+          <option disabled>🇨🇦 Canada — coming soon</option>
+          <option disabled>🇦🇺 Australia — coming soon</option>
+        </select>
+        <span class="chevron">⌄</span>
+      </div>
+      <div class="register-meta">
+        <span><b id="sponsorCount">—</b> organisations</span>
+        <span>Updated <b id="registerDate">—</b></span>
+      </div>
+    </section>
+
+    <section class="page-card" id="pageCard">
+      <div class="page-card__header">
+        <span>Current LinkedIn page</span>
+        <span class="live-pill" id="pagePill">Checking</span>
+      </div>
+      <div class="stats">
+        <div><strong id="checkedCount">0</strong><span>Checked</span></div>
+        <div><strong id="licensedCount">0</strong><span>Licensed</span></div>
+        <div><strong id="unlicensedCount">0</strong><span>Not found</span></div>
+      </div>
+      <button id="recheckButton" type="button"><span>↻</span> Recheck page</button>
+    </section>
+
+    <footer>
+      <span class="privacy-mark">●</span> Offline matching · No browsing data is sent
+    </footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
