@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const CONTENT_VERSION = "1.1.0";
+  const CONTENT_VERSION = "1.2.0";
   if (globalThis.__VSC_CONTENT_VERSION__ === CONTENT_VERSION) {
     globalThis.dispatchEvent(new CustomEvent("vsc:rescan"));
     return;
@@ -11,25 +11,31 @@
   const METADATA_URL = chrome.runtime.getURL("data/metadata.json");
   const DATA_PART_PREFIX = "data/uk-sponsors.index.json.gz.part";
   const SETTINGS_DEFAULTS = { enabled: true, country: "GB" };
-  const CARD_SELECTORS = [
+  const JOB_LINK_SELECTOR = "a[href*='/jobs/view/'], a[href*='currentJobId=']";
+  const KNOWN_CARD_SELECTORS = [
     ".job-card-container",
     ".jobs-search-results__list-item",
     "li.scaffold-layout__list-item",
-    "li[data-occludable-job-id]",
-    "li[data-job-id]"
+    "[data-job-id]",
+    "[data-occludable-job-id]",
+    "[data-view-name*='job-card']",
+    "[role='listitem']"
   ];
-  const CARD_COMPANY_SELECTORS = [
+  const COMPANY_SELECTORS = [
     ".artdeco-entity-lockup__subtitle",
     ".job-card-container__primary-description",
     ".base-search-card__subtitle",
     "[class*='job-card'] [class*='primary-description']",
-    "[class*='job-card'] [class*='subtitle']"
+    "[class*='job-card'] [class*='subtitle']",
+    "a[href*='/company/']"
   ];
   const DETAIL_COMPANY_SELECTORS = [
     ".job-details-jobs-unified-top-card__company-name",
     ".jobs-unified-top-card__company-name",
     ".topcard__org-name-link",
-    ".job-details-jobs-unified-top-card__primary-description-container a"
+    ".job-details-jobs-unified-top-card__primary-description-container a",
+    "[class*='top-card'] a[href*='/company/']",
+    "a[href*='/company/']"
   ];
 
   let settings = { ...SETTINGS_DEFAULTS };
@@ -42,6 +48,9 @@
   const pageStatus = {
     phase: "loading",
     error: null,
+    cardsDetected: 0,
+    companiesExtracted: 0,
+    detailDetected: false,
     checked: 0,
     licensed: 0,
     unlicensed: 0,
@@ -53,7 +62,10 @@
   }
 
   async function createSponsorIndex() {
-    if (typeof DecompressionStream !== "function") throw new Error("This Chrome version cannot decompress the offline register.");
+    if (typeof DecompressionStream !== "function") {
+      throw new Error("This Chrome version cannot decompress the offline register.");
+    }
+
     const metadataResponse = await fetch(METADATA_URL);
     if (!metadataResponse.ok) throw new Error(`Sponsor metadata failed to load (${metadataResponse.status}).`);
     const metadata = await metadataResponse.json();
@@ -87,20 +99,143 @@
     return sponsorIndex;
   }
 
-  function cleanCompanyName(value) {
-    return String(value || "")
+  function cleanText(value) {
+    return VSCLinkedInExtractor.normalizeText(value)
       .replace(/\s*[|·•]\s*(?:LinkedIn|Hiring|Careers).*$/i, "")
-      .replace(/\s+/g, " ")
       .trim();
   }
 
-  function findCompanyElement(container, selectors) {
+  function elementText(element) {
+    if (!element) return "";
+    const clone = element.cloneNode(true);
+    clone.querySelectorAll?.(".vsc-company-marker, .vsc-detail-status").forEach((node) => node.remove());
+    return cleanText(clone.textContent);
+  }
+
+  function elementLines(element) {
+    if (!element) return [];
+    const clone = element.cloneNode(true);
+    clone.querySelectorAll?.(".vsc-company-marker, .vsc-detail-status").forEach((node) => node.remove());
+    return VSCLinkedInExtractor.uniqueLines(clone.innerText || clone.textContent || "");
+  }
+
+  function findJobLink(root) {
+    const links = [...root.querySelectorAll(JOB_LINK_SELECTOR)];
+    return links.find((link) => elementLines(link).some((line) => line.length > 1)) || links[0] || null;
+  }
+
+  function findJobTitle(root) {
+    const selectors = [
+      "h1",
+      "h2",
+      "h3",
+      "[class*='job-card'] [class*='title']",
+      "[class*='job-title']",
+      "strong"
+    ];
+
     for (const selector of selectors) {
-      const element = container.querySelector(selector);
-      const text = cleanCompanyName(element?.textContent);
-      if (element && text && text.length <= 180) return { element, text };
+      for (const element of root.querySelectorAll(selector)) {
+        const text = elementLines(element)[0] || elementText(element);
+        if (text && text.length >= 2 && text.length <= 220 && !VSCLinkedInExtractor.isNoiseLine(text)) {
+          return { element, text };
+        }
+      }
+    }
+
+    const jobLink = findJobLink(root);
+    if (jobLink) {
+      const text = elementLines(jobLink).find((line) => line.length >= 2 && line.length <= 220 && !VSCLinkedInExtractor.isNoiseLine(line));
+      if (text) return { element: jobLink, text };
     }
     return null;
+  }
+
+  function findSmallestElementByText(root, target) {
+    const targetKey = cleanText(target).toLowerCase();
+    if (!targetKey) return null;
+
+    return [...root.querySelectorAll("a, span, p, div")]
+      .filter((element) => {
+        if (element.closest(".vsc-company-marker, .vsc-detail-status")) return false;
+        return elementText(element).toLowerCase() === targetKey;
+      })
+      .sort((left, right) => left.childElementCount - right.childElementCount || left.textContent.length - right.textContent.length)[0] || null;
+  }
+
+  function validCompanyText(text, title = "") {
+    return Boolean(
+      text
+      && text.length >= 2
+      && text.length <= 180
+      && !VSCLinkedInExtractor.isNoiseLine(text, title)
+      && !VSCLinkedInExtractor.looksLikeLocation(text)
+    );
+  }
+
+  function findCompanyElement(root, title = "", selectors = COMPANY_SELECTORS) {
+    for (const selector of selectors) {
+      for (const element of root.querySelectorAll(selector)) {
+        const text = elementText(element);
+        if (validCompanyText(text, title)) return { element, text, source: "selector" };
+      }
+    }
+
+    const lines = elementLines(root);
+    const companyName = cleanText(VSCLinkedInExtractor.chooseCompanyLine(lines, title));
+    if (!validCompanyText(companyName, title)) return null;
+    const element = findSmallestElementByText(root, companyName);
+    return element ? { element, text: companyName, source: "text-structure" } : null;
+  }
+
+  function cardScore(element, jobLink) {
+    if (!element || element === document.body || !element.contains(jobLink)) return -1;
+    const jobLinkCount = element.querySelectorAll(JOB_LINK_SELECTOR).length;
+    if (jobLinkCount > 3) return -1;
+    const lines = elementLines(element);
+    if (lines.length < 2 || lines.length > 28) return -1;
+
+    let score = 0;
+    if (element.matches("li, [role='listitem']")) score += 8;
+    if (element.matches("[data-job-id], [data-occludable-job-id], .job-card-container, .jobs-search-results__list-item")) score += 12;
+    if (jobLinkCount === 1) score += 5;
+    score -= Math.min(lines.length, 20) * 0.1;
+    return score;
+  }
+
+  function findCardForJobLink(jobLink) {
+    const direct = jobLink.closest(KNOWN_CARD_SELECTORS.join(","));
+    if (direct && cardScore(direct, jobLink) >= 0) return direct.querySelector(".job-card-container") || direct;
+
+    let current = jobLink.parentElement;
+    let best = null;
+    let bestScore = -1;
+    for (let depth = 0; current && depth < 10; depth += 1, current = current.parentElement) {
+      const score = cardScore(current, jobLink);
+      if (score > bestScore) {
+        best = current;
+        bestScore = score;
+      }
+      if (score >= 14) break;
+    }
+    return best;
+  }
+
+  function collectCards() {
+    const cards = new Set();
+
+    document.querySelectorAll(KNOWN_CARD_SELECTORS.join(",")).forEach((element) => {
+      if (!findJobLink(element)) return;
+      const normalized = element.querySelector(".job-card-container") || element;
+      cards.add(normalized);
+    });
+
+    document.querySelectorAll(JOB_LINK_SELECTOR).forEach((link) => {
+      const card = findCardForJobLink(link);
+      if (card) cards.add(card);
+    });
+
+    return [...cards].filter((card) => card.isConnected);
   }
 
   function match(companyName) {
@@ -115,6 +250,23 @@
     return `Matched to: ${result.officialName}\n${route}\nConfidence: ${Math.round(result.confidence * 100)}% (${result.method})`;
   }
 
+  function clearCheckedElement(element) {
+    element.classList.remove("vsc-company--licensed", "vsc-company--unlicensed");
+    delete element.dataset.vscChecked;
+    delete element.dataset.vscCompany;
+    if (element.dataset.vscOriginalTitle !== undefined) {
+      element.title = element.dataset.vscOriginalTitle;
+      delete element.dataset.vscOriginalTitle;
+    }
+  }
+
+  function clearCard(card) {
+    card.classList.remove("vsc-job-card", "vsc-job-card--licensed", "vsc-job-card--unlicensed");
+    card.querySelectorAll(".vsc-company-marker").forEach((marker) => marker.remove());
+    card.querySelectorAll("[data-vsc-checked]").forEach(clearCheckedElement);
+    delete card.dataset.vscSignature;
+  }
+
   function makeCompanyMarker(companyName, result) {
     const marker = document.createElement("span");
     marker.className = `vsc-company-marker ${result.found ? "vsc-company-marker--licensed" : "vsc-company-marker--unlicensed"}`;
@@ -124,48 +276,90 @@
     return marker;
   }
 
-  function clearCard(card) {
-    card.classList.remove("vsc-job-card", "vsc-job-card--licensed", "vsc-job-card--unlicensed");
-    card.querySelectorAll(".vsc-company-marker").forEach((marker) => marker.remove());
-    delete card.dataset.vscCompanyKey;
-  }
-
-  function applyCard(card, companyElement, companyName, result) {
+  function applyCard(card, companyElement, companyName, result, signature) {
     clearCard(card);
-    const companyKey = VSCMatcher.canonicalize(companyName);
-    card.dataset.vscCompanyKey = companyKey;
+    card.dataset.vscSignature = signature;
     card.classList.add("vsc-job-card", result.found ? "vsc-job-card--licensed" : "vsc-job-card--unlicensed");
-    companyElement.classList.remove("vsc-company--licensed", "vsc-company--unlicensed");
     companyElement.classList.add(result.found ? "vsc-company--licensed" : "vsc-company--unlicensed");
     companyElement.dataset.vscChecked = "true";
     companyElement.dataset.vscCompany = companyName;
+    companyElement.dataset.vscOriginalTitle = companyElement.getAttribute("title") || "";
     companyElement.title = resultTitle(companyName, result);
     companyElement.insertAdjacentElement("afterend", makeCompanyMarker(companyName, result));
   }
 
-  function normalizedCard(element) {
-    if (element.matches?.(".job-card-container")) return element;
-    return element.querySelector?.(".job-card-container") || element;
-  }
-
   function scanCards() {
-    const cards = new Set();
-    for (const selector of CARD_SELECTORS) {
-      document.querySelectorAll(selector).forEach((element) => cards.add(normalizedCard(element)));
+    const cards = collectCards();
+    pageStatus.cardsDetected = cards.length;
+    let extracted = 0;
+
+    for (const card of cards) {
+      const title = findJobTitle(card);
+      const found = findCompanyElement(card, title?.text || "");
+      if (!found) continue;
+
+      extracted += 1;
+      const jobId = card.getAttribute("data-job-id")
+        || card.getAttribute("data-occludable-job-id")
+        || VSCLinkedInExtractor.extractJobId(findJobLink(card)?.href || "");
+      const signature = `${jobId}|${VSCMatcher.canonicalize(found.text)}`;
+      if (card.dataset.vscSignature === signature && card.querySelector(".vsc-company-marker")) continue;
+      applyCard(card, found.element, found.text, match(found.text), signature);
     }
 
-    cards.forEach((card) => {
-      const found = findCompanyElement(card, CARD_COMPANY_SELECTORS);
-      if (!found) return;
-      const companyKey = VSCMatcher.canonicalize(found.text);
-      if (card.dataset.vscCompanyKey === companyKey && card.querySelector(".vsc-company-marker")) return;
-      applyCard(card, found.element, found.text, match(found.text));
-    });
+    pageStatus.companiesExtracted = extracted;
+  }
+
+  function findDetailHeading() {
+    const selectors = [
+      ".job-details-jobs-unified-top-card__job-title h1",
+      ".jobs-unified-top-card__job-title h1",
+      "[class*='job-details'] h1",
+      "[class*='jobs-unified-top-card'] h1",
+      "main h1"
+    ];
+    for (const selector of selectors) {
+      const heading = document.querySelector(selector);
+      if (heading && elementText(heading)) return heading;
+    }
+    return null;
+  }
+
+  function detailRoot() {
+    const heading = findDetailHeading();
+    if (!heading) return null;
+    return heading.closest("[class*='job-details'], [class*='jobs-unified-top-card'], [class*='scaffold-layout__detail'], main") || heading.parentElement;
+  }
+
+  function findDetailCompany(root, heading) {
+    const title = elementText(heading);
+    const selected = findCompanyElement(root, title, DETAIL_COMPANY_SELECTORS);
+    if (selected) return selected;
+
+    const lines = elementLines(root);
+    const titleIndex = lines.findIndex((line) => line.toLowerCase() === title.toLowerCase());
+    if (titleIndex > 0) {
+      const preceding = cleanText(lines[titleIndex - 1]);
+      if (validCompanyText(preceding, title)) {
+        const element = findSmallestElementByText(root, preceding);
+        if (element) return { element, text: preceding, source: "preceding-title" };
+      }
+    }
+    return null;
   }
 
   function scanDetail() {
+    const root = detailRoot();
     const previous = document.querySelector(".vsc-detail-status");
-    const found = findCompanyElement(document, DETAIL_COMPANY_SELECTORS);
+    if (!root) {
+      pageStatus.detailDetected = false;
+      previous?.remove();
+      return;
+    }
+
+    pageStatus.detailDetected = true;
+    const heading = findDetailHeading();
+    const found = findDetailCompany(root, heading);
     if (!found) {
       previous?.remove();
       return;
@@ -180,6 +374,7 @@
     found.element.classList.add(result.found ? "vsc-company--licensed" : "vsc-company--unlicensed");
     found.element.dataset.vscChecked = "true";
     found.element.dataset.vscCompany = found.text;
+    found.element.dataset.vscOriginalTitle = found.element.getAttribute("title") || "";
     found.element.title = resultTitle(found.text, result);
 
     const status = document.createElement("div");
@@ -214,6 +409,7 @@
         skilledWorker: Boolean(result.skilledWorker)
       });
     });
+
     pageStatus.companies = [...companies.values()];
     pageStatus.checked = pageStatus.companies.length;
     pageStatus.licensed = pageStatus.companies.filter((item) => item.found).length;
@@ -221,6 +417,9 @@
   }
 
   function resetStatus() {
+    pageStatus.cardsDetected = 0;
+    pageStatus.companiesExtracted = 0;
+    pageStatus.detailDetected = false;
     pageStatus.checked = 0;
     pageStatus.licensed = 0;
     pageStatus.unlicensed = 0;
@@ -229,12 +428,7 @@
 
   function removeHighlights() {
     document.querySelectorAll(".vsc-company-marker, .vsc-detail-status").forEach((element) => element.remove());
-    document.querySelectorAll("[data-vsc-checked]").forEach((element) => {
-      element.classList.remove("vsc-company--licensed", "vsc-company--unlicensed");
-      delete element.dataset.vscChecked;
-      delete element.dataset.vscCompany;
-      element.removeAttribute("title");
-    });
+    document.querySelectorAll("[data-vsc-checked]").forEach(clearCheckedElement);
     document.querySelectorAll(".vsc-job-card").forEach(clearCard);
     resetStatus();
   }
@@ -276,7 +470,7 @@
       if (urlChanged) currentUrl = location.href;
       scheduleScan(urlChanged);
     });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   }
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -293,10 +487,12 @@
         connected: true,
         enabled: settings.enabled,
         country: settings.country,
+        version: CONTENT_VERSION,
         ...pageStatus
       });
       return false;
     }
+
     if (message?.type === "RECHECK_PAGE") {
       runScan({ force: true }).then((status) => sendResponse({
         ok: status.phase !== "error",
@@ -304,6 +500,7 @@
         connected: true,
         enabled: settings.enabled,
         country: settings.country,
+        version: CONTENT_VERSION,
         ...status
       }));
       return true;
