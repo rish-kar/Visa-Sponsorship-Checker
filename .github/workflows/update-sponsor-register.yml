@@ -1,0 +1,51 @@
+name: Update UK sponsor register
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "data/**"
+  schedule:
+    - cron: "17 6 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: uk-sponsor-register
+  cancel-in-progress: true
+
+jobs:
+  update-register:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download official register and build offline index
+        run: python scripts/update-uk-register.py
+
+      - name: Test matcher
+        run: node tests/matcher.test.js
+
+      - name: Validate manifest
+        run: python -m json.tool manifest.json > /dev/null
+
+      - name: Commit updated data
+        shell: bash
+        run: |
+          if git diff --quiet -- data && [ -z "$(git status --porcelain -- data)" ]; then
+            echo "Sponsor data is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git commit -m "data: update UK sponsor register"
+          git push
