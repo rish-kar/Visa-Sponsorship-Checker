@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import json
 import re
 import subprocess
 import sys
@@ -42,12 +43,14 @@ def main() -> None:
 
     csv_path = data_dir / f"uk-sponsors-{register_date}.csv"
     gzip_path = csv_path.with_suffix(".csv.gz")
+    index_path = data_dir / "uk-sponsors.index.json"
+    index_gzip_path = data_dir / "uk-sponsors.index.json.gz"
     urllib.request.urlretrieve(csv_url, csv_path)
 
     subprocess.run([
         sys.executable, str(root / "scripts" / "build-sponsor-index.py"),
         "--csv", str(csv_path),
-        "--output", str(data_dir / "uk-sponsors.index.json"),
+        "--output", str(index_path),
         "--metadata", str(data_dir / "metadata.json"),
         "--register-date", register_date
     ], check=True)
@@ -56,7 +59,26 @@ def main() -> None:
         while chunk := source.read(1024 * 1024):
             target.write(chunk)
     csv_path.unlink()
-    print(f"Updated {gzip_path.name} and runtime index")
+
+    for old_part in data_dir.glob("uk-sponsors.index.json.gz.part*"):
+        old_part.unlink()
+    with index_path.open("rb") as source, gzip.open(index_gzip_path, "wb", compresslevel=9) as target:
+        while chunk := source.read(1024 * 1024):
+            target.write(chunk)
+    index_path.unlink()
+
+    part_count = 0
+    with index_gzip_path.open("rb") as source:
+        while chunk := source.read(50_000):
+            (data_dir / f"uk-sponsors.index.json.gz.part{part_count:02d}").write_bytes(chunk)
+            part_count += 1
+    index_gzip_path.unlink()
+
+    metadata_path = data_dir / "metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata["indexPartCount"] = part_count
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    print(f"Updated {gzip_path.name} and {part_count} runtime index parts")
 
 
 if __name__ == "__main__":
