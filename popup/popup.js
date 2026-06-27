@@ -1,5 +1,6 @@
 const DEFAULTS = { enabled: true, country: "GB" };
-const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/content.js"];
+const CONTENT_VERSION = "1.2.0";
+const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/linkedin-extractor.js", "src/content.js"];
 
 const elements = {
   toggle: document.getElementById("enabledToggle"),
@@ -60,11 +61,17 @@ function renderStatus(status) {
   }
 
   const checked = status?.checked ?? 0;
+  const cards = status?.cardsDetected ?? 0;
+  const extracted = status?.companiesExtracted ?? 0;
+  let description = "Scroll the job list or press rescan.";
+  if (checked) description = `${status.licensed ?? 0} licensed · ${status.unlicensed ?? 0} not found.`;
+  else if (cards) description = `${cards} job cards detected; ${extracted} company names extracted.`;
+
   setConnection(
     "connected",
     "CONNECTED",
     checked ? `${checked} ${checked === 1 ? "company" : "companies"} checked` : "Connected to LinkedIn Jobs",
-    checked ? "Results are marked directly in the job list." : "Scroll the job list or press rescan."
+    description
   );
 }
 
@@ -120,17 +127,15 @@ async function connectToLinkedIn({ forceScan = false } = {}) {
     let status;
     try {
       status = await sendStatusMessage(currentTab.id);
+      if (status?.version !== CONTENT_VERSION) throw new Error("Outdated content script");
     } catch {
       await injectContent(currentTab.id);
-      await wait(180);
+      await wait(220);
       status = await sendStatusMessage(currentTab.id);
     }
 
-    if (forceScan) {
-      status = await chrome.tabs.sendMessage(currentTab.id, { type: "RECHECK_PAGE" });
-    } else {
-      status = await waitForSettledStatus(currentTab.id, status);
-    }
+    if (forceScan) status = await chrome.tabs.sendMessage(currentTab.id, { type: "RECHECK_PAGE" });
+    else status = await waitForSettledStatus(currentTab.id, status);
     renderStatus(status);
   } catch (error) {
     console.error("[Visa Sponsorship Checker] Could not connect", error);
