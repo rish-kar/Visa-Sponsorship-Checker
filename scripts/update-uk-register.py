@@ -18,6 +18,13 @@ CSV_PATTERN = re.compile(r'https://assets\.publishing\.service\.gov\.uk/[^"\s]+\
 DATE_PATTERN = re.compile(r"(20\d{2}-\d{2}-\d{2})")
 
 
+def write_deterministic_gzip(source_path: Path, target_path: Path) -> None:
+    with source_path.open("rb") as source, target_path.open("wb") as raw_target:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=raw_target, compresslevel=9, mtime=0) as target:
+            while chunk := source.read(1024 * 1024):
+                target.write(chunk)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", help="Override the register date used in filenames and metadata")
@@ -55,16 +62,12 @@ def main() -> None:
         "--register-date", register_date
     ], check=True)
 
-    with csv_path.open("rb") as source, gzip.open(gzip_path, "wb", compresslevel=9) as target:
-        while chunk := source.read(1024 * 1024):
-            target.write(chunk)
+    write_deterministic_gzip(csv_path, gzip_path)
     csv_path.unlink()
 
     for old_part in data_dir.glob("uk-sponsors.index.json.gz.part*"):
         old_part.unlink()
-    with index_path.open("rb") as source, gzip.open(index_gzip_path, "wb", compresslevel=9) as target:
-        while chunk := source.read(1024 * 1024):
-            target.write(chunk)
+    write_deterministic_gzip(index_path, index_gzip_path)
     index_path.unlink()
 
     part_count = 0
