@@ -35,9 +35,10 @@ A positive result means the organisation appears in the bundled Home Office regi
 - Source: UK Visas and Immigration, **Register of licensed sponsors: workers**.
 - Bundled register date: **26 June 2026**.
 - Compressed raw source: `data/uk-sponsors-2026-06-26.csv.gz`.
-- Runtime index: `data/uk-sponsors.index.json`.
+- Runtime index: compressed parts matching `data/uk-sponsors.index.json.gz.part*`.
+- Current size: 142,071 register rows covering 126,700 organisations.
 
-No runtime API calls are made. To refresh the checked-in data later:
+The extension fetches only its own bundled files; it makes no runtime API calls. To refresh the checked-in data later:
 
 ```bash
 python scripts/update-uk-register.py
@@ -48,7 +49,7 @@ A GitHub Actions workflow runs on weekdays and commits register changes automati
 ## Test
 
 ```bash
-node tests/matcher.test.js
+npm test
 python -m json.tool manifest.json > /dev/null
 ```
 
