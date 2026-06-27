@@ -7,7 +7,6 @@ import csv
 import gzip
 import json
 from collections import defaultdict
-from datetime import date
 from pathlib import Path
 
 ALIASES = {
@@ -102,7 +101,7 @@ def build(csv_path: Path, output_path: Path, metadata_path: Path, register_date:
     metadata = {
         "country": "GB",
         "registerUpdated": register_date,
-        "generatedOn": date.today().isoformat(),
+        "generatedOn": register_date,
         "source": "UK Visas and Immigration — Register of licensed sponsors: workers",
         "sourceUrl": "https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers",
         "rowCount": row_count,
