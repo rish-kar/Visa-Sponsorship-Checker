@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Visa Sponsorship Checker",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Highlights UK licensed sponsors directly on LinkedIn Jobs using an offline Home Office register.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
@@ -24,7 +24,6 @@
       "src/matcher.js",
       "src/url-utils.js",
       "src/linkedin-extractor.js",
-      "src/content.js",
       "src/structural-scanner.js"
     ],
     "css": ["src/content.css"],
