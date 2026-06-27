@@ -7,68 +7,105 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="aurora aurora--one"></div>
-  <div class="aurora aurora--two"></div>
-  <main class="shell">
-    <header class="header">
-      <div class="brand-mark" aria-hidden="true"><span>V</span></div>
-      <div>
-        <p class="eyebrow">LINKEDIN JOBS</p>
-        <h1>Visa Sponsor</h1>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M12 2.75 19 5.5v5.25c0 4.6-2.85 8.66-7 10.5-4.15-1.84-7-5.9-7-10.5V5.5l7-2.75Z"></path>
+            <path d="m8.8 12 2.1 2.1 4.35-4.45"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>Sponsor Check</h1>
+          <p>LinkedIn Jobs · United Kingdom</p>
+        </div>
       </div>
-      <span class="version">v1.0</span>
+
+      <label class="switch" aria-label="Enable sponsor checking">
+        <input id="enabledToggle" type="checkbox" checked>
+        <span class="switch__track"><span class="switch__thumb"></span></span>
+      </label>
     </header>
 
-    <section class="hero spotlight-card" id="spotlightCard">
-      <div class="spotlight"></div>
-      <div class="hero__top">
-        <div>
-          <span class="status-dot" id="statusDot"></span>
-          <span class="status-label" id="statusLabel">Enabled</span>
-        </div>
-        <label class="switch" aria-label="Enable Visa Sponsorship Checker">
-          <input id="enabledToggle" type="checkbox" checked>
-          <span class="switch__track"><span class="switch__thumb"></span></span>
-        </label>
+    <section class="connection" id="connectionCard" data-state="loading" aria-live="polite">
+      <div class="connection__icon" aria-hidden="true">
+        <span class="connection__pulse"></span>
+        <svg viewBox="0 0 24 24">
+          <path d="M8.5 12.5 11 15l5-6"></path>
+          <circle cx="12" cy="12" r="8.25"></circle>
+        </svg>
       </div>
-      <h2>Know before you apply.</h2>
-      <p>Companies are checked locally against the official UK sponsor register.</p>
+      <div class="connection__copy">
+        <span class="connection__label" id="connectionLabel">CONNECTING</span>
+        <h2 id="connectionTitle">Connecting to LinkedIn</h2>
+        <p id="connectionDescription">Checking the active job-search tab.</p>
+      </div>
+      <button class="icon-button" id="recheckButton" type="button" aria-label="Scan page again" title="Scan page again">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 6v5h-5"></path>
+          <path d="M18.2 15.4A7 7 0 1 1 18 8l2 3"></path>
+        </svg>
+      </button>
     </section>
 
-    <section class="settings-card">
-      <label for="countrySelect">Country</label>
-      <div class="select-wrap">
-        <select id="countrySelect">
-          <option value="GB">🇬🇧 United Kingdom</option>
-          <option disabled>🇺🇸 United States — coming soon</option>
-          <option disabled>🇨🇦 Canada — coming soon</option>
-          <option disabled>🇦🇺 Australia — coming soon</option>
+    <section class="stats" aria-label="Current page results">
+      <article>
+        <span class="stat__label">Checked</span>
+        <strong id="checkedCount">0</strong>
+      </article>
+      <article class="stat--positive">
+        <span class="stat__label"><i></i>Licensed</span>
+        <strong id="licensedCount">0</strong>
+      </article>
+      <article class="stat--negative">
+        <span class="stat__label"><i></i>Not found</span>
+        <strong id="unlicensedCount">0</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel__heading">
+        <span>Register</span>
+        <span class="verified-badge">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 8 2.4 2.4L12 5"></path></svg>
+          Official data
+        </span>
+      </div>
+
+      <label class="country-field" for="countrySelect">
+        <span class="flag" aria-hidden="true">🇬🇧</span>
+        <span class="country-field__copy">
+          <strong>United Kingdom</strong>
+          <small><span id="sponsorCount">—</span> licensed organisations</small>
+        </span>
+        <select id="countrySelect" aria-label="Country">
+          <option value="GB">United Kingdom</option>
+          <option disabled>United States — coming soon</option>
+          <option disabled>Canada — coming soon</option>
+          <option disabled>Australia — coming soon</option>
         </select>
-        <span class="chevron">⌄</span>
-      </div>
+        <svg class="country-field__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg>
+      </label>
+
       <div class="register-meta">
-        <span><b id="sponsorCount">—</b> organisations</span>
         <span>Updated <b id="registerDate">—</b></span>
+        <span>Stored on device</span>
       </div>
     </section>
 
-    <section class="page-card" id="pageCard">
-      <div class="page-card__header">
-        <span>Current LinkedIn page</span>
-        <span class="live-pill" id="pagePill">Checking</span>
-      </div>
-      <div class="stats">
-        <div><strong id="checkedCount">0</strong><span>Checked</span></div>
-        <div><strong id="licensedCount">0</strong><span>Licensed</span></div>
-        <div><strong id="unlicensedCount">0</strong><span>Not found</span></div>
-      </div>
-      <button id="recheckButton" type="button"><span>↻</span> Recheck page</button>
+    <section class="legend" aria-label="Result legend">
+      <div><span class="legend__swatch legend__swatch--green"></span><strong>Licensed</strong><small>Matched in the sponsor register</small></div>
+      <div><span class="legend__swatch legend__swatch--red"></span><strong>Not found</strong><small>No sufficiently reliable match</small></div>
     </section>
 
     <footer>
-      <span class="privacy-mark">●</span> Offline matching · No browsing data is sent
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 7V5.5a3.5 3.5 0 0 1 7 0V7"></path><rect x="3" y="7" width="10" height="7" rx="2"></rect></svg>
+      Company names are checked locally. Nothing is uploaded.
     </footer>
   </main>
+
+  <script src="../src/url-utils.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
