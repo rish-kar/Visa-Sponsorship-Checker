@@ -1,6 +1,6 @@
 const DEFAULTS = { enabled: true, country: "GB" };
-const CONTENT_VERSION = "1.4.0";
-const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/linkedin-extractor.js", "src/structural-scanner.js"];
+const CONTENT_VERSION = "1.5.0";
+const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/linkedin-extractor.js", "src/job-list-scanner.js"];
 
 const elements = {
   toggle: document.getElementById("enabledToggle"),
@@ -63,9 +63,8 @@ function renderStatus(status) {
   const checked = status?.checked ?? 0;
   const cards = status?.cardsDetected ?? 0;
   const extracted = status?.companiesExtracted ?? 0;
-  let description = "Scroll the job list or press rescan.";
+  let description = `Detected ${cards} cards and extracted ${extracted} company names.`;
   if (checked) description = `${status.licensed ?? 0} licensed · ${status.unlicensed ?? 0} not found.`;
-  else if (cards) description = `${cards} job cards detected; ${extracted} company names extracted.`;
 
   setConnection(
     "connected",
@@ -130,17 +129,17 @@ async function connectToLinkedIn({ forceScan = false } = {}) {
       if (status?.version !== CONTENT_VERSION) throw new Error("Outdated content script");
     } catch {
       await injectContent(currentTab.id);
-      await wait(300);
+      await wait(350);
       status = await sendStatusMessage(currentTab.id);
     }
 
     if (forceScan) {
       await chrome.tabs.sendMessage(currentTab.id, { type: "RECHECK_PAGE" });
-      await wait(350);
+      await wait(400);
       status = await sendStatusMessage(currentTab.id);
     } else {
       status = await waitForSettledStatus(currentTab.id, status);
-      await wait(250);
+      await wait(300);
       status = await sendStatusMessage(currentTab.id);
     }
     renderStatus(status);
