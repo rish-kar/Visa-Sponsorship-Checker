@@ -1,11 +1,11 @@
 {
   "name": "visa-sponsorship-checker",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "Offline UK sponsor checker for LinkedIn Jobs",
   "scripts": {
     "test": "node tests/matcher.test.js && node tests/url-utils.test.js && node tests/linkedin-extractor.test.js",
-    "validate": "node tests/matcher.test.js && node tests/url-utils.test.js && node tests/linkedin-extractor.test.js"
+    "validate": "node tests/matcher.test.js && node tests/url-utils.test.js && node tests/linkedin-extractor.test.js && node --check popup/popup.js && node --check src/structural-scanner.js"
   },
   "license": "MIT"
 }
