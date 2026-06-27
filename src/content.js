@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const DATA_URL = chrome.runtime.getURL("data/uk-sponsors.index.json");
+  const METADATA_URL = chrome.runtime.getURL("data/metadata.json");
+  const DATA_PART_PREFIX = "data/uk-sponsors.index.json.gz.part";
   const SETTINGS_DEFAULTS = { enabled: true, country: "GB" };
   const CARD_SELECTORS = [
     ".job-card-container",
@@ -37,9 +38,27 @@
 
   async function loadSponsorIndex() {
     if (sponsorIndex) return sponsorIndex;
-    const response = await fetch(DATA_URL);
-    if (!response.ok) throw new Error(`Sponsor data failed to load: ${response.status}`);
-    const dataset = await response.json();
+    const metadataResponse = await fetch(METADATA_URL);
+    if (!metadataResponse.ok) throw new Error(`Sponsor metadata failed to load: ${metadataResponse.status}`);
+    const metadata = await metadataResponse.json();
+    const partCount = Number(metadata.indexPartCount);
+    if (!Number.isInteger(partCount) || partCount < 1) throw new Error("Invalid sponsor data part count");
+
+    const responses = await Promise.all(Array.from({ length: partCount }, (_, index) =>
+      fetch(chrome.runtime.getURL(`${DATA_PART_PREFIX}${String(index).padStart(2, "0")}`))
+    ));
+    const failed = responses.find((response) => !response.ok);
+    if (failed) throw new Error(`Sponsor data failed to load: ${failed.status}`);
+    const buffers = await Promise.all(responses.map((response) => response.arrayBuffer()));
+    const totalLength = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+    const compressed = new Uint8Array(totalLength);
+    let offset = 0;
+    buffers.forEach((buffer) => {
+      compressed.set(new Uint8Array(buffer), offset);
+      offset += buffer.byteLength;
+    });
+    const decompressed = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("gzip"));
+    const dataset = JSON.parse(await new Response(decompressed).text());
     sponsorIndex = VSCMatcher.buildIndex(dataset);
     return sponsorIndex;
   }
