@@ -1,6 +1,6 @@
 const DEFAULTS = { enabled: true, country: "GB" };
 const CONTENT_VERSION = "1.2.0";
-const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/linkedin-extractor.js", "src/content.js"];
+const INJECTION_FILES = ["src/matcher.js", "src/url-utils.js", "src/linkedin-extractor.js", "src/content.js", "src/structural-scanner.js"];
 
 const elements = {
   toggle: document.getElementById("enabledToggle"),
@@ -130,12 +130,19 @@ async function connectToLinkedIn({ forceScan = false } = {}) {
       if (status?.version !== CONTENT_VERSION) throw new Error("Outdated content script");
     } catch {
       await injectContent(currentTab.id);
-      await wait(220);
+      await wait(300);
       status = await sendStatusMessage(currentTab.id);
     }
 
-    if (forceScan) status = await chrome.tabs.sendMessage(currentTab.id, { type: "RECHECK_PAGE" });
-    else status = await waitForSettledStatus(currentTab.id, status);
+    if (forceScan) {
+      await chrome.tabs.sendMessage(currentTab.id, { type: "RECHECK_PAGE" });
+      await wait(350);
+      status = await sendStatusMessage(currentTab.id);
+    } else {
+      status = await waitForSettledStatus(currentTab.id, status);
+      await wait(250);
+      status = await sendStatusMessage(currentTab.id);
+    }
     renderStatus(status);
   } catch (error) {
     console.error("[Visa Sponsorship Checker] Could not connect", error);
