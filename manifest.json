@@ -35,7 +35,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "data/uk-sponsors.index.json",
+        "data/uk-sponsors.index.json.gz.part*",
         "data/metadata.json"
       ],
       "matches": [
