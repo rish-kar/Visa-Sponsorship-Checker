@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "1.3.0";
+  const VERSION = "1.4.0";
   if (globalThis.__VSC_LEFT_PANEL_SCANNER__ === VERSION) {
     globalThis.dispatchEvent(new CustomEvent("vsc:left-panel-rescan"));
     return;
@@ -9,38 +9,48 @@
   globalThis.__VSC_LEFT_PANEL_SCANNER__ = VERSION;
 
   const DEFAULTS = { enabled: true, country: "GB" };
-  const JOB_LINKS = "a[href*='/jobs/view/'],a[href*='currentJobId=']";
-  const LIST_HINTS = [
-    ".scaffold-layout__list",
-    ".jobs-search-results-list",
-    ".jobs-search-results__list",
-    "[class*='jobs-search-results-list']",
-    "[class*='scaffold-layout__list']"
-  ];
-  const CARD_HINTS = [
-    ".job-card-container",
-    ".jobs-search-results__list-item",
-    "li.scaffold-layout__list-item",
-    "[data-job-id]",
+  const CARD_SELECTOR = [
     "[data-occludable-job-id]",
-    "[data-view-name*='job-card']",
-    "[role='listitem']"
+    "[data-job-id]",
+    "li.jobs-search-results__list-item",
+    "li.scaffold-layout__list-item",
+    "li.discovery-templates-entity-item",
+    "li.jobs-collections-module__list-item",
+    "li.jobs-collection__list-item",
+    "article.job-search-card",
+    "article.base-card",
+    "div.base-card"
+  ].join(",");
+  const DETAIL_SELECTOR = [
+    ".scaffold-layout__detail",
+    ".jobs-search__job-details--container",
+    "[class*='jobs-search__job-details']",
+    "[class*='job-details']",
+    "[class*='jobs-unified-top-card']"
+  ].join(",");
+  const TITLE_SELECTORS = [
+    "[data-view-name='job-card-title']",
+    "a.job-card-list__title--link",
+    ".job-card-list__title",
+    "a[href*='/jobs/view/']",
+    "a[href*='currentJobId=']",
+    "[class*='job-title']",
+    "h3"
   ];
-  const COMPANY_HINTS = [
+  const COMPANY_SELECTORS = [
     ".artdeco-entity-lockup__subtitle",
     ".job-card-container__primary-description",
     ".base-search-card__subtitle",
+    ".job-card-list__company-name",
     "[class*='primary-description']",
-    "[class*='subtitle']",
+    "[class*='company-name']",
     "a[href*='/company/']"
   ];
 
   let settings = { ...DEFAULTS };
   let sponsorIndex;
   let sponsorIndexPromise;
-  let listRoot;
-  let listObserver;
-  let pageObserver;
+  let observer;
   let scanTimer;
   const matchCache = new Map();
   const pageStatus = {
@@ -57,34 +67,67 @@
   const normalize = (value) => VSCLinkedInExtractor.normalizeText(value);
 
   function clean(value) {
-    return normalize(value).replace(/\s*[|·•]\s*(?:LinkedIn|Hiring|Careers).*$/i, "").trim();
+    return normalize(value)
+      .replace(/\s*[|·•]\s*(?:LinkedIn|Hiring|Careers).*$/i, "")
+      .trim();
   }
 
-  function visibleLines(element) {
+  function textLines(element) {
     if (!element) return [];
     const clone = element.cloneNode(true);
     clone.querySelectorAll?.(".vsc-company-marker,.vsc-detail-status").forEach((node) => node.remove());
-    return VSCLinkedInExtractor.uniqueLines(clone.innerText || clone.textContent || "")
+    return VSCLinkedInExtractor.uniqueLines(clone.textContent || "")
       .map(clean)
       .filter(Boolean)
       .filter((line) => !/^(?:licensed|not found|licensed sponsor|sponsor not found)$/i.test(line));
   }
 
-  function uniqueJobLinks(root) {
-    const seen = new Set();
-    return [...(root?.querySelectorAll(JOB_LINKS) || [])].filter((link) => {
-      const id = VSCLinkedInExtractor.extractJobId(link.href || link.getAttribute("href") || "");
-      const key = id || link.href || visibleLines(link)[0];
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  function textOf(element) {
+    return clean(textLines(element).join(" "));
   }
 
   function isVisible(element) {
     if (!element?.isConnected) return false;
     const rect = element.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0;
+  }
+
+  function isLeftJobCard(element) {
+    if (!isVisible(element) || element.closest(DETAIL_SELECTOR)) return false;
+    const rect = element.getBoundingClientRect();
+    if (rect.left >= window.innerWidth * 0.52) return false;
+    if (rect.width < 260 || rect.width > 760) return false;
+    if (rect.height < 65 || rect.height > 420) return false;
+    return textLines(element).length >= 2;
+  }
+
+  function normalizeCard(element) {
+    const inner = element.matches(".job-card-container")
+      ? element
+      : element.querySelector(":scope > .job-card-container, .job-card-container");
+    return inner && isLeftJobCard(inner) ? inner : element;
+  }
+
+  function collectCards() {
+    const candidates = [...document.querySelectorAll(CARD_SELECTOR)]
+      .map(normalizeCard)
+      .filter(isLeftJobCard);
+
+    const unique = [];
+    const seen = new Set();
+    for (const card of candidates) {
+      const jobId = card.getAttribute("data-job-id")
+        || card.getAttribute("data-occludable-job-id")
+        || card.closest("[data-job-id],[data-occludable-job-id]")?.getAttribute("data-job-id")
+        || card.closest("[data-job-id],[data-occludable-job-id]")?.getAttribute("data-occludable-job-id")
+        || card.querySelector("a[href*='/jobs/view/'],a[href*='currentJobId=']")?.href
+        || textLines(card).slice(0, 2).join("|");
+      const key = String(jobId || "");
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      unique.push(card);
+    }
+    return unique;
   }
 
   async function loadIndex() {
@@ -119,84 +162,14 @@
     return sponsorIndex;
   }
 
-  function rootScore(element) {
-    if (!isVisible(element)) return -1;
-    const links = uniqueJobLinks(element);
-    if (links.length < 2) return -1;
-    const rect = element.getBoundingClientRect();
-    if (rect.width < 250 || rect.width > Math.min(760, window.innerWidth * 0.58) || rect.height < 180) return -1;
-
-    const style = getComputedStyle(element);
-    const className = String(element.className || "");
-    let score = links.length * 100;
-    if (/jobs-search-results|scaffold-layout__list/i.test(className)) score += 500;
-    if (/(auto|scroll)/.test(style.overflowY)) score += 250;
-    if (rect.left < window.innerWidth * 0.48) score += 200;
-    score -= Math.round(rect.width / 10);
-    return score;
-  }
-
-  function findListRoot() {
-    const candidates = new Set();
-    LIST_HINTS.forEach((selector) => document.querySelectorAll(selector).forEach((element) => candidates.add(element)));
-
-    document.querySelectorAll(JOB_LINKS).forEach((link) => {
-      let current = link.parentElement;
-      for (let depth = 0; current && depth < 12; depth += 1, current = current.parentElement) {
-        if (uniqueJobLinks(current).length >= 2) candidates.add(current);
-      }
-    });
-
-    let best;
-    let highest = -1;
-    candidates.forEach((candidate) => {
-      const score = rootScore(candidate);
-      if (score > highest) {
-        best = candidate;
-        highest = score;
-      }
-    });
-    return best || null;
-  }
-
-  function cardForLink(link, root) {
-    const direct = link.closest(CARD_HINTS.join(","));
-    if (direct && root.contains(direct) && uniqueJobLinks(direct).length === 1) {
-      return direct.querySelector(".job-card-container") || direct;
-    }
-
-    let current = link;
-    let best;
-    for (let depth = 0; current && current !== root && depth < 12; depth += 1, current = current.parentElement) {
-      const count = uniqueJobLinks(current).length;
-      const lineCount = visibleLines(current).length;
-      if (count === 1 && lineCount >= 2 && lineCount <= 24) best = current;
-      if (current.parentElement && uniqueJobLinks(current.parentElement).length > 1) break;
-    }
-    return best || null;
-  }
-
-  function collectCards(root) {
-    const cards = new Set();
-    uniqueJobLinks(root).forEach((link) => {
-      const card = cardForLink(link, root);
-      if (card && root.contains(card)) cards.add(card);
-    });
-    return [...cards].filter(isVisible);
-  }
-
   function findTitle(card) {
-    const link = uniqueJobLinks(card)[0];
-    const linkTitle = visibleLines(link).find((line) => line.length >= 2 && line.length <= 220 && !VSCLinkedInExtractor.isNoiseLine(line));
-    if (linkTitle) return linkTitle;
-
-    for (const selector of ["h1", "h2", "h3", "[class*='job-title']", "[class*='title']"]) {
+    for (const selector of TITLE_SELECTORS) {
       for (const element of card.querySelectorAll(selector)) {
-        const line = visibleLines(element)[0];
-        if (line && line.length <= 220 && !VSCLinkedInExtractor.isNoiseLine(line)) return line;
+        const value = textOf(element);
+        if (value.length >= 2 && value.length <= 220 && !VSCLinkedInExtractor.isNoiseLine(value)) return value;
       }
     }
-    return "";
+    return textLines(card)[0] || "";
   }
 
   function validCompany(value, title) {
@@ -207,29 +180,29 @@
       && !VSCLinkedInExtractor.looksLikeLocation(value);
   }
 
-  function smallestElement(root, target) {
+  function smallestElement(card, target) {
     const key = clean(target).toLowerCase();
-    return [...root.querySelectorAll("a,span,p,div")]
+    return [...card.querySelectorAll("a,span,p,div")]
       .filter((element) => {
         if (element.closest(".vsc-company-marker,.vsc-detail-status")) return false;
-        const elementLines = visibleLines(element);
-        return elementLines.length === 1 && elementLines[0].toLowerCase() === key;
+        const lines = textLines(element);
+        return lines.length === 1 && lines[0].toLowerCase() === key;
       })
       .sort((left, right) => left.childElementCount - right.childElementCount || left.textContent.length - right.textContent.length)[0] || null;
   }
 
   function findCompany(card, title) {
-    for (const selector of COMPANY_HINTS) {
+    for (const selector of COMPANY_SELECTORS) {
       for (const element of card.querySelectorAll(selector)) {
-        const value = clean(visibleLines(element).join(" "));
+        const value = textOf(element);
         if (validCompany(value, title)) return { element, text: value };
       }
     }
 
-    const cardLines = visibleLines(card);
-    const titleIndex = cardLines.findIndex((line) => line.toLowerCase() === title.toLowerCase());
-    const possible = titleIndex >= 0 ? cardLines.slice(titleIndex + 1) : cardLines;
-    for (const value of possible) {
+    const lines = textLines(card);
+    const titleIndex = lines.findIndex((line) => line.toLowerCase() === title.toLowerCase());
+    const remaining = titleIndex >= 0 ? lines.slice(titleIndex + 1) : lines.slice(1);
+    for (const value of remaining) {
       if (!validCompany(value, title)) continue;
       const element = smallestElement(card, value);
       if (element) return { element, text: value };
@@ -264,6 +237,7 @@
     card.querySelectorAll(".vsc-company-marker").forEach((node) => node.remove());
     card.querySelectorAll("[data-vsc-checked]").forEach(restore);
     delete card.dataset.vscSignature;
+    delete card.dataset.vscJobId;
   }
 
   function clearEverywhere() {
@@ -272,7 +246,7 @@
     document.querySelectorAll(".vsc-job-card").forEach(clearCard);
   }
 
-  function marker(name, result) {
+  function makeMarker(name, result) {
     const badge = document.createElement("span");
     badge.className = `vsc-company-marker ${result.found ? "vsc-company-marker--licensed" : "vsc-company-marker--unlicensed"}`;
     badge.textContent = result.found ? "Licensed" : "Not found";
@@ -280,7 +254,7 @@
     return badge;
   }
 
-  function mark(card, company, result, signature, jobId) {
+  function markCard(card, company, result, signature, jobId) {
     clearCard(card);
     card.dataset.vscSignature = signature;
     card.dataset.vscJobId = jobId;
@@ -291,14 +265,14 @@
     company.element.dataset.vscCompany = company.text;
     company.element.dataset.vscOriginalTitle = company.element.getAttribute("title") || "";
     company.element.title = tooltip(company.text, result);
-    company.element.insertAdjacentElement("afterend", marker(company.text, result));
+    company.element.insertAdjacentElement("afterend", makeMarker(company.text, result));
   }
 
   function updateStatus(cards) {
     const results = cards.map((card) => {
-      const element = card.querySelector("[data-vsc-checked][data-vsc-company]");
-      if (!element) return null;
-      const companyName = element.dataset.vscCompany;
+      const companyElement = card.querySelector("[data-vsc-checked][data-vsc-company]");
+      if (!companyElement) return null;
+      const companyName = companyElement.dataset.vscCompany;
       const result = matchCompany(companyName);
       return {
         jobId: card.dataset.vscJobId || null,
@@ -316,15 +290,6 @@
     pageStatus.unlicensed = results.length - pageStatus.licensed;
   }
 
-  function observeList(root) {
-    if (listRoot === root) return;
-    listObserver?.disconnect();
-    listRoot = root;
-    listObserver = new MutationObserver(() => schedule(false));
-    listObserver.observe(root, { childList: true, subtree: true, characterData: true });
-    root.addEventListener("scroll", () => schedule(false), { passive: true });
-  }
-
   async function scan(force = false) {
     if (!settings.enabled || settings.country !== "GB") {
       clearEverywhere();
@@ -338,39 +303,33 @@
       await loadIndex();
       if (force) clearEverywhere();
 
-      const root = findListRoot();
-      if (!root) {
-        listRoot = null;
-        Object.assign(pageStatus, { phase: "ready", cardsDetected: 0, companiesExtracted: 0, checked: 0, licensed: 0, unlicensed: 0, companies: [] });
-        return pageStatus;
-      }
-      observeList(root);
-
       document.querySelectorAll(".vsc-detail-status").forEach((node) => node.remove());
       document.querySelectorAll("[data-vsc-checked]").forEach((element) => {
-        if (!root.contains(element)) restore(element);
+        if (element.closest(DETAIL_SELECTOR)) restore(element);
       });
       document.querySelectorAll(".vsc-job-card").forEach((element) => {
-        if (!root.contains(element)) clearCard(element);
+        if (element.closest(DETAIL_SELECTOR) || !isLeftJobCard(element)) clearCard(element);
       });
 
-      const cards = collectCards(root);
+      const cards = collectCards();
       pageStatus.cardsDetected = cards.length;
       let extracted = 0;
 
       for (const card of cards) {
-        const jobTitle = findTitle(card);
-        const company = findCompany(card, jobTitle);
+        const title = findTitle(card);
+        const company = findCompany(card, title);
         if (!company) continue;
         extracted += 1;
 
-        const link = uniqueJobLinks(card)[0];
         const jobId = card.getAttribute("data-job-id")
           || card.getAttribute("data-occludable-job-id")
-          || VSCLinkedInExtractor.extractJobId(link?.href || "");
+          || card.closest("[data-job-id],[data-occludable-job-id]")?.getAttribute("data-job-id")
+          || card.closest("[data-job-id],[data-occludable-job-id]")?.getAttribute("data-occludable-job-id")
+          || VSCLinkedInExtractor.extractJobId(card.querySelector("a[href*='/jobs/view/'],a[href*='currentJobId=']")?.href || "")
+          || textLines(card).slice(0, 2).join("|");
         const signature = `${jobId}|${VSCMatcher.canonicalize(company.text)}`;
         if (card.dataset.vscSignature === signature && card.querySelector(".vsc-company-marker")) continue;
-        mark(card, company, matchCompany(company.text), signature, jobId);
+        markCard(card, company, matchCompany(company.text), signature, String(jobId));
       }
 
       pageStatus.companiesExtracted = extracted;
@@ -386,7 +345,7 @@
 
   function schedule(force = false) {
     clearTimeout(scanTimer);
-    scanTimer = setTimeout(() => scan(force), 120);
+    scanTimer = setTimeout(() => scan(force), 90);
   }
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -409,17 +368,16 @@
   });
 
   globalThis.addEventListener("vsc:left-panel-rescan", () => schedule(true));
-  globalThis.addEventListener("vsc:rescan", () => schedule(true));
+  window.addEventListener("scroll", () => schedule(false), true);
+  window.addEventListener("resize", () => schedule(false));
 
   (async () => {
     settings = { ...DEFAULTS, ...(await chrome.storage.local.get(DEFAULTS)) };
     clearEverywhere();
-    pageObserver = new MutationObserver(() => {
-      if (!listRoot?.isConnected) schedule(false);
-    });
-    pageObserver.observe(document.documentElement, { childList: true, subtree: true });
+    observer = new MutationObserver(() => schedule(false));
+    observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
     await scan(false);
     setTimeout(() => schedule(false), 250);
-    setTimeout(() => schedule(false), 800);
+    setTimeout(() => schedule(false), 900);
   })();
 })();
