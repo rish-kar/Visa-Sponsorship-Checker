@@ -1,11 +1,11 @@
 {
   "name": "visa-sponsorship-checker",
-  "version": "1.5.0",
+  "version": "1.5.3",
   "private": true,
   "description": "Offline UK sponsor checker for LinkedIn Jobs",
   "scripts": {
-    "test": "node tests/matcher.test.js && node tests/url-utils.test.js && node tests/linkedin-extractor.test.js",
-    "validate": "node tests/matcher.test.js && node tests/url-utils.test.js && node tests/linkedin-extractor.test.js && node --check popup/popup.js && node --check src/job-list-scanner.js"
+    "test": "node tests/matcher.test.js && node tests/url-utils.test.js && node tests/linkedin-extractor.test.js && node tests/job-list-scanner.test.js && node tests/country-data.test.js",
+    "validate": "node tests/matcher.test.js && node tests/url-utils.test.js && node tests/linkedin-extractor.test.js && node tests/job-list-scanner.test.js && node tests/country-data.test.js && node --check popup/popup.js && node --check src/background.js && node --check src/job-list-scanner.js && python -B -m py_compile scripts/build-sponsor-index.py scripts/update-uk-register.py scripts/update-nl-register.py"
   },
   "license": "MIT"
 }

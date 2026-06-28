@@ -10,24 +10,24 @@
   top: 10px;
   bottom: 10px;
   left: 0;
-  width: 3px;
+  width: 5px;
   border-radius: 0 999px 999px 0;
   content: "";
-  opacity: .92;
+  opacity: 1;
   pointer-events: none;
 }
 
 .vsc-job-card--licensed {
-  background: linear-gradient(90deg, rgba(45, 166, 108, .075), transparent 36%) !important;
-  box-shadow: inset 0 0 0 1px rgba(54, 183, 121, .08) !important;
+  background: linear-gradient(90deg, rgba(51, 196, 119, .18), rgba(51, 196, 119, .085) 38%, transparent 78%) !important;
+  box-shadow: inset 0 0 0 1px rgba(69, 210, 137, .22), inset 5px 0 0 rgba(69, 210, 137, .18), 0 0 18px rgba(69, 210, 137, .10) !important;
 }
-.vsc-job-card--licensed::before { background: #47bd7d; box-shadow: 0 0 12px rgba(71,189,125,.26); }
+.vsc-job-card--licensed::before { background: #5cf0a1; box-shadow: 0 0 18px rgba(92,240,161,.54); }
 
 .vsc-job-card--unlicensed {
-  background: linear-gradient(90deg, rgba(210, 73, 79, .065), transparent 36%) !important;
-  box-shadow: inset 0 0 0 1px rgba(218, 83, 89, .07) !important;
+  background: linear-gradient(90deg, rgba(238, 90, 99, .17), rgba(238, 90, 99, .075) 38%, transparent 78%) !important;
+  box-shadow: inset 0 0 0 1px rgba(244, 112, 120, .21), inset 5px 0 0 rgba(244, 112, 120, .16), 0 0 18px rgba(244, 112, 120, .09) !important;
 }
-.vsc-job-card--unlicensed::before { background: #d55f65; box-shadow: 0 0 10px rgba(213,95,101,.2); }
+.vsc-job-card--unlicensed::before { background: #ff7f87; box-shadow: 0 0 18px rgba(255,127,135,.48); }
 
 .vsc-company--licensed,
 .vsc-company--unlicensed {
@@ -71,16 +71,16 @@
 
 .vsc-company-marker--licensed,
 .vsc-detail-status--licensed {
-  border-color: rgba(69,185,122,.28) !important;
-  color: #45b97a !important;
-  background: rgba(52,164,105,.10) !important;
+  border-color: rgba(92,240,161,.44) !important;
+  color: #7dffbb !important;
+  background: rgba(52,188,111,.18) !important;
 }
 
 .vsc-company-marker--unlicensed,
 .vsc-detail-status--unlicensed {
-  border-color: rgba(217,107,112,.27) !important;
-  color: #d96b70 !important;
-  background: rgba(204,78,84,.09) !important;
+  border-color: rgba(255,127,135,.42) !important;
+  color: #ff9ca2 !important;
+  background: rgba(226,78,87,.16) !important;
 }
 
 .vsc-detail-status {
@@ -92,11 +92,29 @@
 .vsc-detail-status__text { overflow: hidden !important; text-overflow: ellipsis !important; }
 .vsc-detail-status__secondary { margin-left: 2px !important; opacity: .72 !important; font-weight: 500 !important; }
 
-@media (prefers-color-scheme: light) {
-  .vsc-job-card--licensed { background: linear-gradient(90deg, rgba(31,153,91,.07), transparent 36%) !important; }
-  .vsc-job-card--unlicensed { background: linear-gradient(90deg, rgba(200,63,70,.055), transparent 36%) !important; }
-  .vsc-company-marker--licensed, .vsc-detail-status--licensed { color: #187b4c !important; background: rgba(35,163,91,.08) !important; }
-  .vsc-company-marker--unlicensed, .vsc-detail-status--unlicensed { color: #a93a40 !important; background: rgba(203,61,69,.07) !important; }
+html.vsc-linkedin-theme--light .vsc-job-card--licensed {
+  background: linear-gradient(90deg, rgba(12, 121, 68, .18), rgba(12, 121, 68, .095) 38%, transparent 78%) !important;
+  box-shadow: inset 0 0 0 1px rgba(12, 121, 68, .24), inset 5px 0 0 rgba(12, 121, 68, .19), 0 0 15px rgba(12, 121, 68, .08) !important;
+}
+html.vsc-linkedin-theme--light .vsc-job-card--licensed::before { background: #087a43; box-shadow: 0 0 14px rgba(8,122,67,.32); }
+html.vsc-linkedin-theme--light .vsc-job-card--unlicensed {
+  background: linear-gradient(90deg, rgba(166, 30, 45, .17), rgba(166, 30, 45, .088) 38%, transparent 78%) !important;
+  box-shadow: inset 0 0 0 1px rgba(166, 30, 45, .24), inset 5px 0 0 rgba(166, 30, 45, .18), 0 0 15px rgba(166, 30, 45, .08) !important;
+}
+html.vsc-linkedin-theme--light .vsc-job-card--unlicensed::before { background: #a51d2d; box-shadow: 0 0 14px rgba(165,29,45,.3); }
+html.vsc-linkedin-theme--light .vsc-company--licensed { color: #087a43 !important; }
+html.vsc-linkedin-theme--light .vsc-company--unlicensed { color: #a51d2d !important; }
+html.vsc-linkedin-theme--light .vsc-company-marker--licensed,
+html.vsc-linkedin-theme--light .vsc-detail-status--licensed {
+  border-color: rgba(8,122,67,.46) !important;
+  color: #087a43 !important;
+  background: rgba(8,122,67,.17) !important;
+}
+html.vsc-linkedin-theme--light .vsc-company-marker--unlicensed,
+html.vsc-linkedin-theme--light .vsc-detail-status--unlicensed {
+  border-color: rgba(165,29,45,.44) !important;
+  color: #a51d2d !important;
+  background: rgba(165,29,45,.15) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

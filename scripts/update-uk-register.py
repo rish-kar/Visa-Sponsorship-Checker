@@ -45,9 +45,6 @@ def main() -> None:
     date_match = DATE_PATTERN.search(filename)
     register_date = args.date or (date_match.group(1) if date_match else date.today().isoformat())
 
-    for old_file in data_dir.glob("uk-sponsors-*.csv.gz"):
-        old_file.unlink()
-
     csv_path = data_dir / f"uk-sponsors-{register_date}.csv"
     gzip_path = csv_path.with_suffix(".csv.gz")
     index_path = data_dir / "uk-sponsors.index.json"
@@ -64,6 +61,10 @@ def main() -> None:
 
     write_deterministic_gzip(csv_path, gzip_path)
     csv_path.unlink()
+
+    for old_file in data_dir.glob("uk-sponsors-*.csv.gz"):
+        if old_file != gzip_path:
+            old_file.unlink()
 
     for old_part in data_dir.glob("uk-sponsors.index.json.gz.part*"):
         old_part.unlink()

@@ -1,18 +1,31 @@
 {
   "manifest_version": 3,
   "name": "Visa Sponsorship Checker",
-  "version": "1.5.0",
-  "description": "Highlights UK licensed sponsors directly on LinkedIn Jobs using an offline Home Office register.",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "version": "1.5.3",
+  "description": "Highlights licensed or recognised sponsors directly on LinkedIn Jobs using bundled official registers.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage", "activeTab", "scripting", "alarms"],
   "host_permissions": [
     "https://linkedin.com/jobs/*",
     "https://www.linkedin.com/jobs/*",
-    "https://*.linkedin.com/jobs/*"
+    "https://*.linkedin.com/jobs/*",
+    "https://raw.githubusercontent.com/rish-kar/Visa-Sponsorship-Checker/*"
   ],
   "background": {"service_worker": "src/background.js"},
   "action": {
     "default_title": "Visa Sponsorship Checker",
-    "default_popup": "popup/popup.html"
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "content_scripts": [{
     "matches": [
@@ -30,7 +43,13 @@
     "run_at": "document_idle"
   }],
   "web_accessible_resources": [{
-    "resources": ["data/uk-sponsors.index.json.gz.part*", "data/metadata.json"],
+    "resources": [
+      "data/uk-sponsors.index.json.gz.part*",
+      "data/nl-sponsors.index.json.gz.part*",
+      "data/location-index.json",
+      "data/metadata.json",
+      "data/nl-metadata.json"
+    ],
     "matches": [
       "https://linkedin.com/*",
       "https://www.linkedin.com/*",

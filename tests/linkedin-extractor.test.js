@@ -3,10 +3,25 @@ const extractor = require('../src/linkedin-extractor.js');
 
 const first = ['Intermediate Java Developer (Big Data)', 'Global Relay', 'Loddon (Hybrid)', '12 school alumni work here', '2 weeks ago · Easy Apply'];
 const second = ['Generative AI Engineer', 'Bridewell', 'London (Hybrid)', 'Actively reviewing applicants', '1 week ago · Easy Apply'];
+const locationBeforeCompany = ['Data Engineer', 'Bristol', 'Acer', '2 weeks ago · Easy Apply'];
 
 assert.equal(extractor.chooseCompanyLine(first, first[0]), 'Global Relay');
 assert.equal(extractor.chooseCompanyLine(second, second[0]), 'Bridewell');
+assert.equal(extractor.chooseCompanyLine(locationBeforeCompany, locationBeforeCompany[0]), 'Acer');
 assert.equal(extractor.extractJobId('/jobs/view/4414577869/'), '4414577869');
 assert.equal(extractor.looksLikeLocation('London Area, United Kingdom (On-site)'), true);
+assert.equal(extractor.looksLikeLocation('London'), true);
+assert.equal(extractor.looksLikeLocation('Bristol'), true);
+assert.equal(extractor.classifyLocationCountry('London Area, United Kingdom (On-site)'), 'GB');
+assert.equal(extractor.classifyLocationCountry('Manchester'), 'GB');
+assert.equal(extractor.classifyLocationCountry('Amsterdam'), 'NL');
+assert.equal(extractor.classifyLocationCountry('Rotterdam, Netherlands'), 'NL');
+assert.equal(extractor.classifyLocationCountry('Utrecht (Hybrid)'), 'NL');
+assert.equal(extractor.classifyLocationCountry('Remote'), '');
+assert.equal(extractor.classifyLocationCountry('Paris, France'), '');
+assert.equal(extractor.classifyLocationCountry('Ede'), '');
+extractor.addLocationTerms('NL', ['Ede']);
+assert.equal(extractor.classifyLocationCountry('Ede'), 'NL');
 assert.equal(extractor.isNoiseLine('Actively reviewing applicants'), true);
+assert.equal(extractor.isNoiseLine('Actively Hiring'), true);
 console.log('linkedin extractor tests passed');

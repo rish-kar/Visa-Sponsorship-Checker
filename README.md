@@ -1,6 +1,6 @@
 # Visa Sponsorship Checker
 
-A privacy-first Chrome extension that highlights UK licensed sponsors directly on LinkedIn Jobs.
+A privacy-first Chrome extension that highlights UK licensed sponsors and Netherlands recognised sponsors directly on LinkedIn Jobs.
 
 ## What it does
 
@@ -8,8 +8,8 @@ A privacy-first Chrome extension that highlights UK licensed sponsors directly o
 - Adds a soft red marker when the employer is not found.
 - Shows the matched legal organisation name, match method and Skilled Worker-route availability.
 - Handles common brand/legal-name differences using normalization, trading-name extraction, strong fuzzy matching and a reviewed alias map.
-- Works entirely offline after installation; the UK register is bundled in the repository.
-- Includes an enable/disable switch and country selector prepared for future expansion.
+- Ships with bundled sponsor registers and can refresh updated data into local browser storage weekly.
+- Includes an enable/disable switch and UK/Netherlands country selector.
 
 ## Install locally
 
@@ -28,28 +28,31 @@ The extension checks employers in this order:
 3. Reviewed brand-to-legal-entity aliases.
 4. High-threshold token and edit-distance matching with ambiguity rejection.
 
-A positive result means the organisation appears in the bundled Home Office register. It does **not** guarantee that a particular vacancy will be sponsored. The badge states separately whether the organisation has a Skilled Worker route in the register.
+A positive result means the organisation appears in the selected country's bundled or locally cached register. It does **not** guarantee that a particular vacancy will be sponsored. UK badges state separately whether the organisation has a Skilled Worker route in the register.
 
 ## Sponsor data
 
-- Source: UK Visas and Immigration, **Register of licensed sponsors: workers**.
-- Bundled register date: **26 June 2026**.
-- Compressed raw source: `data/uk-sponsors-2026-06-26.csv.gz`.
-- Runtime index: compressed parts matching `data/uk-sponsors.index.json.gz.part*`.
-- Current size: 142,071 register rows covering 126,700 organisations.
+- UK source: UK Visas and Immigration, **Register of licensed sponsors: workers**.
+- Netherlands source: Immigration and Naturalisation Service (IND), **Public register Work**.
+- Bundled UK runtime index: compressed parts matching `data/uk-sponsors.index.json.gz.part*`.
+- Bundled Netherlands runtime index: compressed parts matching `data/nl-sponsors.index.json.gz.part*`.
 
-The extension fetches only its own bundled files; it makes no runtime API calls. To refresh the checked-in data later:
+The extension uses bundled data as a fallback. Once a week, its background worker checks the hosted repository data and stores updated register files locally in Chrome storage when available.
+
+To refresh the checked-in data manually:
 
 ```bash
 python scripts/update-uk-register.py
+python scripts/update-nl-register.py
 ```
 
-A GitHub Actions workflow runs on weekdays and commits register changes automatically.
+A GitHub Actions workflow runs every Sunday and commits register changes automatically.
 
 ## Test
 
 ```bash
 npm test
+npm run validate
 python -m json.tool manifest.json > /dev/null
 ```
 
@@ -57,6 +60,8 @@ python -m json.tool manifest.json > /dev/null
 
 - `storage`: saves enabled state and selected country.
 - `activeTab`: lets the popup request a recheck of the current LinkedIn Jobs tab.
-- LinkedIn Jobs host access only: reads employer names and injects visual markers.
+- `alarms`: schedules weekly register refreshes.
+- LinkedIn Jobs host access: reads employer names and injects visual markers.
+- GitHub raw host access: downloads updated bundled-register JSON parts into local storage.
 
 See [PRIVACY.md](PRIVACY.md).

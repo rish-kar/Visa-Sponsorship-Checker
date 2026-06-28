@@ -6,16 +6,35 @@
   "use strict";
 
   const LEGAL_SUFFIXES = new Set([
-    "ltd", "limited", "llp", "plc", "inc", "incorporated", "corp", "corporation",
-    "co", "company", "companies", "sa", "ag", "gmbh", "bv", "nv", "ulc", "lp"
+    "ltd", "limited", "llp", "plc", "sa", "ag", "gmbh", "bv", "nv", "ulc", "lp"
   ]);
 
   const TOKEN_STOPWORDS = new Set([
     "and", "the", "for", "with", "from", "services", "service", "solutions", "solution",
     "group", "holdings", "holding", "international", "global", "uk", "united", "kingdom",
     "europe", "european", "technologies", "technology", "systems", "system", "partners",
-    "consulting", "management", "association", "trust", "foundation"
+    "consulting", "management", "association", "trust", "foundation", "inc", "incorporated",
+    "corp", "corporation", "co", "company", "companies"
   ]);
+
+  const COUNTRY_SUFFIXES = new Set(["uk", "gb", "britain"]);
+
+  // Place names are not distinctive company identifiers on their own
+  // (e.g. "Bristol" should not match "H&L Bristol Limited").
+  const PLACE_TOKENS = new Set([
+    "uk", "gb", "britain", "ireland", "england", "scotland", "wales",
+    "london", "manchester", "birmingham", "bristol", "leeds", "edinburgh",
+    "glasgow", "cambridge", "oxford", "reading", "liverpool", "sheffield",
+    "cardiff", "belfast", "newcastle", "nottingham", "leicester", "coventry",
+    "bath", "york", "exeter", "swindon", "slough", "brighton", "southampton",
+    "portsmouth", "aberdeen", "dundee", "norwich", "plymouth", "swansea",
+    "derby", "hull", "stoke", "sunderland", "preston", "luton", "gloucester",
+    "watford", "ipswich", "wolverhampton", "middlesbrough", "blackpool"
+  ]);
+
+  // A lone distinctive word only resolves a company when it is genuinely rare
+  // in the register (appears in at most this many organisations).
+  const SINGLE_TOKEN_DF_CAP = 12;
 
   function baseNormalize(value) {
     return String(value || "")
@@ -34,6 +53,27 @@
     const result = tokens.slice();
     while (result.length > 1 && LEGAL_SUFFIXES.has(result[result.length - 1])) result.pop();
     return result;
+  }
+
+  function stripCountrySuffixes(value) {
+    const tokens = String(value || "").split(" ").filter(Boolean);
+    let changed = false;
+    while (tokens.length > 1) {
+      const last = tokens[tokens.length - 1];
+      if (COUNTRY_SUFFIXES.has(last)) {
+        tokens.pop();
+        changed = true;
+        continue;
+      }
+      if (tokens.length > 2 && tokens[tokens.length - 2] === "united" && tokens[tokens.length - 1] === "kingdom") {
+        tokens.pop();
+        tokens.pop();
+        changed = true;
+        continue;
+      }
+      break;
+    }
+    return changed ? tokens.join(" ") : "";
   }
 
   function canonicalize(value) {
@@ -111,8 +151,10 @@
     });
 
     const legalExact = new Map();
+    const brandExact = new Map();
     const tradeExact = new Map();
     const tokenMap = new Map();
+    const df = new Map();
 
     function addExact(map, key, id) {
       if (!key) return;
@@ -122,11 +164,14 @@
     }
 
     records.forEach((record) => {
-      addExact(legalExact, record.canonical, record.id);
-      addExact(legalExact, legalNameKey(record.name), record.id);
+      [record.canonical, legalNameKey(record.name)].forEach((key) => {
+        addExact(legalExact, key, record.id);
+        addExact(brandExact, stripCountrySuffixes(key), record.id);
+      });
       addExact(tradeExact, tradeNameKey(record.name), record.id);
       new Set(record.tokens).forEach((token) => {
-        if (token.length < 4) return;
+        df.set(token, (df.get(token) || 0) + 1);
+        if (token.length < 3) return;
         const values = tokenMap.get(token) || [];
         values.push(record.id);
         tokenMap.set(token, values);
@@ -136,17 +181,17 @@
     const aliases = new Map();
     Object.entries(dataset.aliases || {}).forEach(([alias, officialName]) => {
       const targetKey = canonicalize(officialName);
-      const targetIds = legalExact.get(targetKey);
+      const targetIds = legalExact.get(targetKey) || brandExact.get(targetKey);
       if (targetIds && targetIds.length) aliases.set(canonicalize(alias), targetIds[0]);
     });
 
-    return { dataset, records, legalExact, tradeExact, tokenMap, aliases };
+    return { dataset, records, legalExact, brandExact, tradeExact, tokenMap, aliases, df, recordCount: records.length };
   }
 
   function chooseExact(index, ids, method, confidence) {
     const preferred = ids
       .map((id) => index.records[id])
-      .sort((a, b) => Number(b.skilledWorker) - Number(a.skilledWorker) || a.name.length - b.name.length)[0];
+      .sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name))[0];
     return {
       found: true,
       method,
@@ -158,7 +203,7 @@
 
   function matchCompany(index, companyName) {
     const input = canonicalize(companyName);
-    if (!input || input.length < 2) return { found: false, method: "invalid", confidence: 0 };
+    if (!input) return { found: false, method: "invalid", confidence: 0 };
 
     const exactIds = index.legalExact.get(input);
     if (exactIds?.length) return chooseExact(index, exactIds, "exact", 1);
@@ -169,36 +214,56 @@
     const tradeIds = index.tradeExact.get(input);
     if (tradeIds?.length) return chooseExact(index, tradeIds, "trading-name", 0.98);
 
+    const brandIds = index.brandExact?.get(input);
+    if (brandIds?.length) return chooseExact(index, brandIds, "country-brand", 0.96);
+
+    if (input.length < 2) return { found: false, method: "invalid", confidence: 0 };
+
     const inputTokens = significantTokens(companyName);
     if (!inputTokens.length) return { found: false, method: "not-found", confidence: 0 };
 
-    const candidateCounts = new Map();
+    // Distinctive (non-place) tokens are what actually identify a company.
+    const distinctiveInput = inputTokens.filter((token) => !PLACE_TOKENS.has(token));
+    const idf = (token) => Math.log((index.recordCount + 1) / ((index.df.get(token) || 0) + 1)) + 1;
+
+    const candidateIds = new Set();
     inputTokens.forEach((token) => {
-      const ids = index.tokenMap.get(token) || [];
-      if (ids.length > 900) return;
-      ids.forEach((id) => candidateCounts.set(id, (candidateCounts.get(id) || 0) + 1));
+      const ids = index.tokenMap.get(token);
+      if (!ids || ids.length > 4000) return;
+      ids.forEach((id) => candidateIds.add(id));
     });
 
-    if (!candidateCounts.size) return { found: false, method: "not-found", confidence: 0 };
-
-    const candidates = [...candidateCounts.entries()]
-      .filter(([, shared]) => inputTokens.length === 1 ? shared === 1 : shared >= Math.min(2, inputTokens.length))
-      .slice(0, 2500)
-      .map(([id]) => index.records[id]);
+    if (!candidateIds.size) return { found: false, method: "not-found", confidence: 0 };
 
     let best = null;
     let runnerUp = null;
-    candidates.forEach((candidate) => {
+    candidateIds.forEach((id) => {
+      const candidate = index.records[id];
+      const candidateTokens = new Set(candidate.tokens);
+
+      // Does the candidate contain every distinctive word of the input?
+      // (e.g. "expedia" is fully inside "expedia.com ltd".)
+      let coversAllDistinctive = distinctiveInput.length > 0;
+      let sharedIdf = 0;
+      distinctiveInput.forEach((token) => {
+        if (candidateTokens.has(token)) sharedIdf += idf(token);
+        else coversAllDistinctive = false;
+      });
+
+      let candidateIdf = 0;
+      candidate.tokens.forEach((token) => { candidateIdf += idf(token); });
+      const candidateCoverage = candidateIdf ? sharedIdf / candidateIdf : 0;
+
       const tokenSimilarity = tokenScore(inputTokens, candidate.tokens);
       const editSimilarity = levenshteinRatio(input, candidate.canonical);
-      const containment = input.length >= 6 && candidate.canonical.length >= 6 &&
-        (candidate.canonical.includes(input) || input.includes(candidate.canonical)) ? 1 : 0;
       const score = Math.max(
-        (tokenSimilarity * 0.72) + (editSimilarity * 0.28),
-        containment ? (tokenSimilarity * 0.6) + 0.38 : 0
+        (tokenSimilarity * 0.6) + (editSimilarity * 0.4),
+        coversAllDistinctive ? (0.9 + (0.1 * candidateCoverage)) : 0
       );
-      const item = { candidate, score };
-      if (!best || score > best.score) {
+
+      const item = { candidate, score, coversAllDistinctive, candidateCoverage };
+      if (!best || score > best.score ||
+        (score === best.score && candidate.canonical.length < best.candidate.canonical.length)) {
         runnerUp = best;
         best = item;
       } else if (!runnerUp || score > runnerUp.score) {
@@ -206,16 +271,36 @@
       }
     });
 
-    const uniqueEnough = !runnerUp || best.score - runnerUp.score >= 0.035;
-    const minimum = inputTokens.length === 1 ? 0.965 : 0.88;
-    if (best && best.score >= minimum && uniqueEnough) {
-      return {
-        found: true,
-        method: "strong-name-match",
-        confidence: Math.min(0.97, Number(best.score.toFixed(3))),
-        officialName: best.candidate.name,
-        skilledWorker: best.candidate.skilledWorker
-      };
+    if (best) {
+      // A brand that is a subset of the registered legal name is a confident
+      // match — but a single distinctive word only counts if it is rare enough
+      // to point at one organisation rather than hundreds.
+      const singleDistinctive = distinctiveInput.length === 1;
+      const distinctiveEnough = !singleDistinctive ||
+        distinctiveInput.every((token) => (index.df.get(token) || 0) <= SINGLE_TOKEN_DF_CAP);
+
+      if (best.coversAllDistinctive && distinctiveEnough) {
+        return {
+          found: true,
+          method: "brand-name-match",
+          confidence: Math.min(0.96, Number((0.86 + (0.1 * best.candidateCoverage)).toFixed(3))),
+          officialName: best.candidate.name,
+          skilledWorker: best.candidate.skilledWorker
+        };
+      }
+
+      // Fallback similarity path catches typos and partial overlaps.
+      const minimum = singleDistinctive ? 0.93 : 0.86;
+      const uniqueEnough = !runnerUp || best.score - runnerUp.score >= 0.03;
+      if (best.score >= minimum && uniqueEnough) {
+        return {
+          found: true,
+          method: "strong-name-match",
+          confidence: Math.min(0.95, Number(best.score.toFixed(3))),
+          officialName: best.candidate.name,
+          skilledWorker: best.candidate.skilledWorker
+        };
+      }
     }
 
     return { found: false, method: "not-found", confidence: best ? Number(best.score.toFixed(3)) : 0 };

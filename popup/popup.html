@@ -7,18 +7,16 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+  <div class="dark-veil" aria-hidden="true"></div>
   <main class="app">
     <header class="topbar">
       <div class="brand">
         <div class="brand__mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" role="img">
-            <path d="M12 2.75 19 5.5v5.25c0 4.6-2.85 8.66-7 10.5-4.15-1.84-7-5.9-7-10.5V5.5l7-2.75Z"></path>
-            <path d="m8.8 12 2.1 2.1 4.35-4.45"></path>
-          </svg>
+          <img src="../icons/icon128.png" alt="">
         </div>
-        <div>
-          <h1>Sponsor Check</h1>
-          <p>LinkedIn Jobs · United Kingdom</p>
+        <div class="brand__copy">
+          <h1>Sponsorship License Checker</h1>
+          <p>Checks sponsorship license from government sources for LinkedIn</p>
         </div>
       </div>
 
@@ -73,20 +71,30 @@
         </span>
       </div>
 
-      <label class="country-field" for="countrySelect">
-        <span class="flag" aria-hidden="true">🇬🇧</span>
-        <span class="country-field__copy">
-          <strong>United Kingdom</strong>
-          <small><span id="sponsorCount">—</span> licensed organisations</small>
-        </span>
-        <select id="countrySelect" aria-label="Country">
+      <div class="country-field" id="countryField">
+        <button class="country-field__button" id="countryButton" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Country">
+          <span class="flag" id="countryFlag" aria-hidden="true"><img id="countryFlagImage" src="../icons/flag-gb.svg" alt=""></span>
+          <span class="country-field__copy">
+            <strong id="countryName">United Kingdom</strong>
+            <small><span id="sponsorCount">—</span> <span id="sponsorLabel">licensed organisations</span></small>
+          </span>
+          <svg class="country-field__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg>
+        </button>
+        <select id="countrySelect" aria-label="Country" hidden>
           <option value="GB">United Kingdom</option>
-          <option disabled>United States — coming soon</option>
-          <option disabled>Canada — coming soon</option>
-          <option disabled>Australia — coming soon</option>
+          <option value="NL">Netherlands</option>
         </select>
-        <svg class="country-field__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg>
-      </label>
+        <div class="country-menu" id="countryMenu" role="listbox" aria-label="Country" hidden>
+          <button class="country-menu__option" type="button" role="option" data-country="GB" aria-selected="true">
+            <span class="flag" aria-hidden="true"><img src="../icons/flag-gb.svg" alt=""></span>
+            <span>United Kingdom</span>
+          </button>
+          <button class="country-menu__option" type="button" role="option" data-country="NL" aria-selected="false">
+            <span class="flag" aria-hidden="true"><img src="../icons/flag-nl.svg" alt=""></span>
+            <span>Netherlands</span>
+          </button>
+        </div>
+      </div>
 
       <div class="register-meta">
         <span>Updated <b id="registerDate">—</b></span>
