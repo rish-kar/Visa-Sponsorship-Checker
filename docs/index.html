@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Visa Sponsorship Checker</title>
+  <meta name="description" content="Privacy policy for the Visa Sponsorship Checker Chrome extension. No personal data is collected, stored, or transmitted; all checking happens locally in your browser.">
+  <meta name="robots" content="index, follow">
+  <style>
+    :root {
+      --bg: #f6f8fa;
+      --card: #ffffff;
+      --text: #1f2328;
+      --muted: #57606a;
+      --line: #d0d7de;
+      --accent: #1f6f43;
+      --accent-soft: #eaf5ee;
+      --code-bg: #f0f2f4;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      padding: 2.5rem 1rem 4rem;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 2.5rem clamp(1.25rem, 4vw, 3rem);
+      box-shadow: 0 8px 30px rgba(31, 35, 40, 0.06);
+    }
+    header { border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; margin-bottom: 1.75rem; }
+    h1 { font-size: 1.7rem; margin: 0 0 0.35rem; letter-spacing: -0.01em; }
+    .updated { color: var(--muted); font-size: 0.9rem; margin: 0; }
+    h2 {
+      font-size: 1.15rem;
+      margin: 2rem 0 0.6rem;
+      padding-top: 0.4rem;
+    }
+    h2:first-of-type { margin-top: 0; }
+    p, li { color: var(--text); }
+    a { color: var(--accent); }
+    .summary {
+      background: var(--accent-soft);
+      border: 1px solid #cfe7d8;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      margin: 0 0 1.5rem;
+      font-weight: 600;
+    }
+    ul { padding-left: 1.25rem; }
+    li { margin: 0.3rem 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 0.5rem;
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th { background: var(--code-bg); font-weight: 600; white-space: nowrap; }
+    code {
+      background: var(--code-bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 5px;
+      font-size: 0.9em;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    footer {
+      max-width: 760px;
+      margin: 1.5rem auto 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1117; --card: #161b22; --text: #e6edf3; --muted: #9198a1;
+        --line: #30363d; --accent: #56d364; --accent-soft: #122017; --code-bg: #1f242c;
+      }
+      .summary { border-color: #1c3326; }
+      th { color: var(--text); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Privacy Policy — Visa Sponsorship Checker</h1>
+      <p class="updated">Last updated: 28 June 2026</p>
+    </header>
+
+    <p>Visa Sponsorship Checker (&ldquo;the Extension&rdquo;) is a browser extension that highlights
+      UK licensed sponsors and Netherlands recognised sponsors directly on LinkedIn Jobs pages. This
+      policy explains exactly what the Extension does and does not do with your data.</p>
+
+    <p class="summary">The Extension does not collect, store, or transmit any personal data. All
+      company-name checking happens locally, inside your browser.</p>
+
+    <h2>1. Information we collect</h2>
+    <p>The Extension does <strong>not</strong> collect, transmit, sell, or share any personal
+      information, browsing history, or job-search activity. Specifically:</p>
+    <ul>
+      <li>No personal or identifying information is gathered.</li>
+      <li>No analytics, advertising, tracking pixels, or telemetry of any kind.</li>
+      <li>No remote code is downloaded or executed.</li>
+    </ul>
+
+    <h2>2. How the Extension works (local processing)</h2>
+    <p>When you view a LinkedIn Jobs page, the Extension reads the employer/company names shown on
+      that page and compares them &mdash; entirely within your browser &mdash; against bundled copies
+      of official government sponsor registers. It then adds a coloured marker
+      (&ldquo;Licensed&rdquo; / &ldquo;Recognised sponsor&rdquo; or &ldquo;Not found&rdquo;) next to
+      each company. The company names, job titles, and locations it reads never leave your device and
+      are never sent to us or to any third party.</p>
+
+    <h2>3. Local storage</h2>
+    <p>The Extension uses your browser&rsquo;s local extension storage
+      (<code>chrome.storage.local</code>) to save only:</p>
+    <ul>
+      <li>Your enabled / disabled preference.</li>
+      <li>Your selected country (United Kingdom or Netherlands).</li>
+      <li>A cached copy of the public sponsor-register data, so checks work offline and quickly.</li>
+    </ul>
+    <p>None of this is personal data. It is stored on your device and is removed automatically when
+      you uninstall the Extension.</p>
+
+    <h2>4. Network activity</h2>
+    <p>The Extension makes a single type of outbound request: approximately once a week it checks this
+      project&rsquo;s public GitHub file host for an updated copy of the sponsor registers and
+      downloads the data files if a newer version is available. These requests download
+      <strong>public government register data only</strong>. They do <strong>not</strong> include
+      your company names, job details, browsing activity, IP-linked identifiers we control, or any
+      personal data &mdash; only static file paths are requested. No other network connections are
+      made.</p>
+
+    <h2>5. Permissions and why they are needed</h2>
+    <table>
+      <thead>
+        <tr><th>Permission</th><th>Why the Extension needs it</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>storage</code></td><td>Saves your on/off preference, selected country, and cached register data locally.</td></tr>
+        <tr><td><code>activeTab</code></td><td>Lets the popup re-check the LinkedIn Jobs tab you are viewing when you click the extension icon.</td></tr>
+        <tr><td><code>scripting</code></td><td>Injects the on-page checker into LinkedIn Jobs pages.</td></tr>
+        <tr><td><code>alarms</code></td><td>Schedules the weekly check for updated register data.</td></tr>
+        <tr><td>Access to <code>linkedin.com/jobs</code></td><td>Reads employer names on LinkedIn Jobs pages and adds the visual markers.</td></tr>
+        <tr><td>Access to <code>raw.githubusercontent.com</code> (this project only)</td><td>Downloads updated public sponsor-register data.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>6. Data sharing and sale</h2>
+    <p>We do not sell, rent, trade, or share any data with third parties. There is no user data to
+      share, because the Extension collects none. The Extension&rsquo;s use of information complies
+      with the Chrome Web Store User Data Policy, including the Limited Use requirements.</p>
+
+    <h2>7. Data sources</h2>
+    <p>Sponsor data is sourced from official public registers:</p>
+    <ul>
+      <li><strong>United Kingdom:</strong> UK Visas and Immigration &mdash; Register of licensed sponsors: workers.</li>
+      <li><strong>Netherlands:</strong> Immigration and Naturalisation Service (IND) &mdash; Public register Work.</li>
+    </ul>
+    <p>Updated register files are distributed through this project&rsquo;s public GitHub repository.</p>
+
+    <h2>8. Children&rsquo;s privacy</h2>
+    <p>The Extension is a general-purpose professional tool, is not directed at children, and collects
+      no data from anyone.</p>
+
+    <h2>9. Changes to this policy</h2>
+    <p>If this policy changes, the updated version will be published at this URL with a revised
+      &ldquo;Last updated&rdquo; date.</p>
+
+    <h2>10. Contact</h2>
+    <p>Questions about this policy or the Extension can be raised on the project&rsquo;s issue
+      tracker:
+      <a href="https://github.com/rish-kar/Visa-Sponsorship-Checker/issues">github.com/rish-kar/Visa-Sponsorship-Checker/issues</a>.
+      <!-- Optional: replace the line below with a contact email if you want one shown publicly. -->
+    </p>
+  </main>
+  <footer>
+    Visa Sponsorship Checker is an independent project and is not affiliated with LinkedIn, UK Visas
+    and Immigration, or the Netherlands IND.
+  </footer>
+</body>
+</html>
