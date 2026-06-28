@@ -15,10 +15,10 @@
     cleanup() {
       clearTimeout(scanTimer);
       if (observer) observer.disconnect();
+      matchCache.clear();
       this.cleanups.splice(0).forEach((cleanup) => cleanup());
     }
   };
-  globalThis.__VSC_JOB_LIST_SCANNER__ = VERSION;
   globalThis.__VSC_JOB_LIST_SCANNER_STATE__ = runtimeState;
 
   const DEFAULTS = { enabled: true, country: "GB" };
@@ -560,7 +560,7 @@
     const key = clean(target).toLowerCase();
     return [...card.querySelectorAll("a,span,p,div")]
       .filter((element) => {
-        if (element.closest(".vsc-company-marker,.vsc-detail-status")) return false;
+        if (element.closest(".vsc-company-marker")) return false;
         const valueLines = lines(element);
         return valueLines.length === 1 && textPieces(valueLines[0]).some((piece) => piece.toLowerCase() === key);
       })
@@ -590,6 +590,7 @@
 
   function matchCompany(name) {
     const sponsorIndex = sponsorIndexes.get(settings.country);
+    if (!sponsorIndex) return { found: false, method: "loading", confidence: 0 };
     const key = `${settings.country}|${VSCMatcher.canonicalize(name)}`;
     if (!matchCache.has(key)) matchCache.set(key, VSCMatcher.matchCompany(sponsorIndex, name));
     return matchCache.get(key);
@@ -621,7 +622,7 @@
   }
 
   function clearAll() {
-    document.querySelectorAll(".vsc-company-marker,.vsc-detail-status").forEach((node) => node.remove());
+    document.querySelectorAll(".vsc-company-marker").forEach((node) => node.remove());
     document.querySelectorAll("[data-vsc-checked]").forEach(restore);
     document.querySelectorAll(".vsc-job-card").forEach(clearCard);
   }
@@ -686,7 +687,6 @@
       await Promise.all([loadIndex(settings.country), loadLocationIndex()]);
       if (force) clearAll();
 
-      document.querySelectorAll(".vsc-detail-status").forEach((node) => node.remove());
       document.querySelectorAll("[data-vsc-checked]").forEach((element) => {
         if (element.closest(DETAIL_SELECTOR)) restore(element);
       });

@@ -263,7 +263,6 @@ svg { display: block; fill: none; stroke: currentColor; stroke-linecap: round; s
 .country-field__button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .country-field.is-open { border-color: rgba(123,167,255,.45); box-shadow: 0 18px 35px rgba(0,0,0,.42), 0 0 0 3px rgba(123,167,255,.08), 0 1px 0 rgba(255,255,255,.08) inset; }
 .country-field.is-open .country-field__chevron { transform: rotate(180deg); }
-}
 .flag {
   position: relative;
   display: grid;

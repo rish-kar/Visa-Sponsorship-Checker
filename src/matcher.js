@@ -171,7 +171,6 @@
       addExact(tradeExact, tradeNameKey(record.name), record.id);
       new Set(record.tokens).forEach((token) => {
         df.set(token, (df.get(token) || 0) + 1);
-        if (token.length < 3) return;
         const values = tokenMap.get(token) || [];
         values.push(record.id);
         tokenMap.set(token, values);
@@ -303,7 +302,7 @@
       }
     }
 
-    return { found: false, method: "not-found", confidence: best ? Number(best.score.toFixed(3)) : 0 };
+    return { found: false, method: "not-found", confidence: 0 };
   }
 
   return { baseNormalize, canonicalize, significantTokens, legalNameKey, tradeNameKey, buildIndex, matchCompany };

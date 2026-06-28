@@ -13,7 +13,7 @@ A **privacy-first** Chrome extension that highlights **🇬🇧 UK licensed spon
 <br />
 
 ![Manifest](https://img.shields.io/badge/Manifest-V3-4285F4?logo=googlechrome&logoColor=white)
-![Version](https://img.shields.io/badge/version-1.5.3-22c55e)
+![Version](https://img.shields.io/badge/version-1.5.8-22c55e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Privacy](https://img.shields.io/badge/privacy-100%25%20local-7c3aed)
 ![Dependencies](https://img.shields.io/badge/runtime%20deps-0-orange)

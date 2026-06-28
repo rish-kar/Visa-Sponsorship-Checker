@@ -37,8 +37,7 @@
 .vsc-company--licensed { color: #45b97a !important; }
 .vsc-company--unlicensed { color: #d96b70 !important; }
 
-.vsc-company-marker,
-.vsc-detail-status {
+.vsc-company-marker {
   box-sizing: border-box !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -59,8 +58,7 @@
   cursor: help !important;
 }
 
-.vsc-company-marker::before,
-.vsc-detail-status__dot {
+.vsc-company-marker::before {
   width: 6px !important;
   height: 6px !important;
   flex: 0 0 6px !important;
@@ -69,28 +67,17 @@
   content: "";
 }
 
-.vsc-company-marker--licensed,
-.vsc-detail-status--licensed {
+.vsc-company-marker--licensed {
   border-color: rgba(92,240,161,.44) !important;
   color: #7dffbb !important;
   background: rgba(52,188,111,.18) !important;
 }
 
-.vsc-company-marker--unlicensed,
-.vsc-detail-status--unlicensed {
+.vsc-company-marker--unlicensed {
   border-color: rgba(255,127,135,.42) !important;
   color: #ff9ca2 !important;
   background: rgba(226,78,87,.16) !important;
 }
-
-.vsc-detail-status {
-  display: flex !important;
-  margin: 9px 0 0 !important;
-  padding: 5px 9px !important;
-  font-size: 11px !important;
-}
-.vsc-detail-status__text { overflow: hidden !important; text-overflow: ellipsis !important; }
-.vsc-detail-status__secondary { margin-left: 2px !important; opacity: .72 !important; font-weight: 500 !important; }
 
 html.vsc-linkedin-theme--light .vsc-job-card--licensed {
   background: linear-gradient(90deg, rgba(12, 121, 68, .18), rgba(12, 121, 68, .095) 38%, transparent 78%) !important;
@@ -104,14 +91,12 @@ html.vsc-linkedin-theme--light .vsc-job-card--unlicensed {
 html.vsc-linkedin-theme--light .vsc-job-card--unlicensed::before { background: #a51d2d; box-shadow: 0 0 14px rgba(165,29,45,.3); }
 html.vsc-linkedin-theme--light .vsc-company--licensed { color: #087a43 !important; }
 html.vsc-linkedin-theme--light .vsc-company--unlicensed { color: #a51d2d !important; }
-html.vsc-linkedin-theme--light .vsc-company-marker--licensed,
-html.vsc-linkedin-theme--light .vsc-detail-status--licensed {
+html.vsc-linkedin-theme--light .vsc-company-marker--licensed {
   border-color: rgba(8,122,67,.46) !important;
   color: #087a43 !important;
   background: rgba(8,122,67,.17) !important;
 }
-html.vsc-linkedin-theme--light .vsc-company-marker--unlicensed,
-html.vsc-linkedin-theme--light .vsc-detail-status--unlicensed {
+html.vsc-linkedin-theme--light .vsc-company-marker--unlicensed {
   border-color: rgba(165,29,45,.44) !important;
   color: #a51d2d !important;
   background: rgba(165,29,45,.15) !important;
