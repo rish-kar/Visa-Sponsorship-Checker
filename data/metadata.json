@@ -1,11 +1,11 @@
 {
   "country": "GB",
-  "registerUpdated": "2026-06-26",
-  "generatedOn": "2026-06-26",
+  "registerUpdated": "2026-07-03",
+  "generatedOn": "2026-07-03",
   "source": "UK Visas and Immigration \u2014 Register of licensed sponsors: workers",
   "sourceUrl": "https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers",
-  "rowCount": 142071,
-  "organisationCount": 126700,
-  "skilledWorkerOrganisationCount": 121386,
-  "indexPartCount": 23
+  "rowCount": 142235,
+  "organisationCount": 126858,
+  "skilledWorkerOrganisationCount": 121537,
+  "indexPartCount": 24
 }
